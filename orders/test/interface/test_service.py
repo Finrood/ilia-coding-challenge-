@@ -40,6 +40,67 @@ def test_will_raise_when_order_not_found(orders_rpc):
         orders_rpc.get_order(1)
     assert err.value.value == 'Order with id 1 not found'
 
+@pytest.mark.usefixtures('db_session', 'order_details')
+def test_list_orders_with_one_items(orders_rpc):
+    response = orders_rpc.list_orders()
+
+    assert len(response) == 1
+    assert len(response[0]['order_details']) == 2
+    assert response[0]['order_details'][0]['product_id'] == "the_odyssey"
+    assert response[0]['order_details'][0]['price'] == "99.51"
+    assert response[0]['order_details'][0]['quantity'] == 1
+
+    assert response[0]['order_details'][1]['product_id'] == "the_enigma"
+    assert response[0]['order_details'][1]['price'] == "30.99"
+    assert response[0]['order_details'][1]['quantity'] == 8
+
+def test_list_orders_with_multiple_items(orders_rpc, db_session):
+    order1 = Order()
+    order2 = Order()
+    db_session.add(order1)
+    db_session.add(order2)
+    db_session.commit()
+
+    db_session.add_all([
+        OrderDetail(
+            order=order1, product_id="the_odyssey", price=99.51, quantity=1
+        ),
+        OrderDetail(
+            order=order1, product_id="the_enigma", price=30.99, quantity=8
+        )
+    ])
+
+    db_session.add_all([
+        OrderDetail(
+            order=order2, product_id="the_odyssey", price=99.51, quantity=5
+        )
+    ])
+
+    db_session.commit()
+
+    response = orders_rpc.list_orders()
+
+    assert len(response) == 2
+    assert len(response[0]['order_details']) == 2
+    assert response[0]['order_details'][0]['product_id'] == "the_odyssey"
+    assert response[0]['order_details'][0]['price'] == "99.51"
+    assert response[0]['order_details'][0]['quantity'] == 1
+
+    assert response[0]['order_details'][1]['product_id'] == "the_enigma"
+    assert response[0]['order_details'][1]['price'] == "30.99"
+    assert response[0]['order_details'][1]['quantity'] == 8
+
+    assert len(response[1]['order_details']) == 1
+    assert response[1]['order_details'][0]['product_id'] == "the_odyssey"
+    assert response[1]['order_details'][0]['price'] == "99.51"
+    assert response[1]['order_details'][0]['quantity'] == 5
+
+
+def test_list_orders_empty(orders_rpc, db_session):
+    db_session.query(Order).delete()
+    response = orders_rpc.list_orders()
+
+    assert len(response) == 0
 
 @pytest.mark.usefixtures('db_session')
 def test_can_create_order(orders_service, orders_rpc):

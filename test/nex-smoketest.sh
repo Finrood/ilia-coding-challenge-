@@ -52,3 +52,18 @@ ID=$(echo ${ORDER_ID} | jq '.id')
 # Test: Get Order back
 echo "=== Getting Order ==="
 curl -s "${STD_APP_URL}/orders/${ID}" | jq .
+
+# Test: List all Orders
+echo "=== Listing Orders ==="
+response=$(curl -s "${STD_APP_URL}/orders")
+if [[ $response == *"error"* ]]; then
+    echo "Error occurred while listing orders:"
+    echo $response | jq .
+else
+    echo $response
+    echo $response | jq .
+fi
+
+# Test: Delete Product
+echo "=== Deleting product id: the_odyssey ==="
+curl -s -XDELETE "${STD_APP_URL}/products/the_odyssey"

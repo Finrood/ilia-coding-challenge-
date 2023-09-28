@@ -31,11 +31,10 @@ def test_get(storage, products):
 def test_list(storage, products):
     listed_products = storage.list()
     assert (
-        products == sorted(list(listed_products), key=lambda x: x['id']))
+            products == sorted(list(listed_products), key=lambda x: x['id']))
 
 
 def test_create(product, redis_client, storage):
-
     storage.create(product)
 
     stored_product = redis_client.hgetall('products:LZ127')
@@ -46,6 +45,19 @@ def test_create(product, redis_client, storage):
     assert product['passenger_capacity'] == (
         int(stored_product[b'passenger_capacity']))
     assert product['in_stock'] == int(stored_product[b'in_stock'])
+
+
+def test_delete_existing_product(create_product, redis_client, storage):
+    create_product(id='test-product', title='Test Product', in_stock=10, passenger_capacity=650, maximum_speed=1000)
+
+    storage.delete("test-product")
+
+    assert not redis_client.exists('products:test-product')
+
+
+def test_delete_non_existing_product(storage, redis_client):
+    storage.delete("test-product")
+    assert not redis_client.exists('products:test-product')
 
 
 def test_decrement_stock(storage, create_product, redis_client):

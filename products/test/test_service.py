@@ -40,7 +40,7 @@ def test_list_products(products, service_container):
     assert products == sorted(listed_products, key=lambda p: p['id'])
 
 
-def test_list_productis_when_empty(service_container):
+def test_list_products_when_empty(service_container):
 
     with entrypoint_hook(service_container, 'list') as list_:
         listed_products = list_()
@@ -124,6 +124,24 @@ def test_create_product_validation_error_on_non_nullable_fields(
     assert (
         {field: ['Field may not be null.']} ==
         exc_info.value.args[0])
+
+
+def test_delete_existing_product(create_product, service_container, redis_client):
+    stored_product = create_product(id='test-product', title='Test Product', in_stock=10)
+
+    assert redis_client.exists(f'products:{stored_product["id"]}')
+
+    with entrypoint_hook(service_container, 'delete') as delete:
+        delete(stored_product['id'])
+
+    assert not redis_client.exists(f'products:{stored_product["id"]}')
+
+
+def test_delete_non_existing_product(service_container, redis_client):
+    with entrypoint_hook(service_container, 'delete') as delete:
+        delete('non-existing-product-id')
+
+    assert not redis_client.exists('products:non-existing-product-id')
 
 
 def test_handle_order_created(

@@ -7,12 +7,13 @@ from gateapi.api.dependencies import get_rpc, config
 from .exceptions import OrderNotFound
 
 router = APIRouter(
-    prefix = "/orders",
-    tags = ['Orders']
+    prefix="/orders",
+    tags=['Orders']
 )
 
+
 @router.get("/{order_id}", status_code=status.HTTP_200_OK)
-def get_order(order_id: int, rpc = Depends(get_rpc)):
+def get_order(order_id: int, rpc=Depends(get_rpc)):
     try:
         return _get_order(order_id, rpc)
     except OrderNotFound as error:
@@ -20,6 +21,7 @@ def get_order(order_id: int, rpc = Depends(get_rpc)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(error)
         )
+
 
 def _get_order(order_id, nameko_rpc):
     # Retrieve order data from the orders service.
@@ -45,12 +47,26 @@ def _get_order(order_id, nameko_rpc):
 
     return order
 
+
+@router.get("", status_code=status.HTTP_200_OK)
+def list_orders(rpc=Depends(get_rpc)):
+    return _list_orders(rpc)
+
+
+def _list_orders(nameko_rpc):
+    with nameko_rpc.next() as nameko:
+        orders = nameko.orders.list_orders()
+
+    return orders
+
+
 @router.post("", status_code=status.HTTP_200_OK, response_model=schemas.CreateOrderSuccess)
-def create_order(request: schemas.CreateOrder, rpc = Depends(get_rpc)):
-    id_ =  _create_order(request.dict(), rpc)
+def create_order(request: schemas.CreateOrder, rpc=Depends(get_rpc)):
+    id_ = _create_order(request.dict(), rpc)
     return {
         'id': id_
     }
+
 
 def _create_order(order_data, nameko_rpc):
     # check order product ids are valid
@@ -60,7 +76,7 @@ def _create_order(order_data, nameko_rpc):
             if item['product_id'] not in valid_product_ids:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                     detail=f"Product with id {item['product_id']} not found"
-            )
+                                    )
         # Call orders-service to create the order.
         result = nameko.orders.create_order(
             order_data['order_details']
