@@ -15,12 +15,12 @@ def storage(test_config):
 
 def test_get_fails_on_not_found(storage):
     with pytest.raises(storage.NotFound) as exc:
-        storage.get(2)
+        storage.get_product(2)
     assert 'Product ID 2 does not exist' == exc.value.args[0]
 
 
 def test_get(storage, products):
-    product = storage.get('LZ129')
+    product = storage.get_product('LZ129')
     assert 'LZ129' == product['id']
     assert 'LZ 129 Hindenburg' == product['title']
     assert 135 == product['maximum_speed']
@@ -29,13 +29,13 @@ def test_get(storage, products):
 
 
 def test_list(storage, products):
-    listed_products = storage.list()
+    listed_products = storage.list_products()
     assert (
             products == sorted(list(listed_products), key=lambda x: x['id']))
 
 
 def test_create(product, redis_client, storage):
-    storage.create(product)
+    storage.create_product(product)
 
     stored_product = redis_client.hgetall('products:LZ127')
 
@@ -50,13 +50,13 @@ def test_create(product, redis_client, storage):
 def test_delete_existing_product(create_product, redis_client, storage):
     create_product(id='test-product', title='Test Product', in_stock=10, passenger_capacity=650, maximum_speed=1000)
 
-    storage.delete("test-product")
+    storage.delete_product("test-product")
 
     assert not redis_client.exists('products:test-product')
 
 
 def test_delete_non_existing_product(storage, redis_client):
-    storage.delete("test-product")
+    storage.delete_product("test-product")
     assert not redis_client.exists('products:test-product')
 
 

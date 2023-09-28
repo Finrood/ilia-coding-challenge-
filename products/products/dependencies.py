@@ -12,6 +12,21 @@ REDIS_URI_KEY = 'REDIS_URI'
 
 logger = logging.getLogger(__name__)
 
+
+def _format_key(product_id: str) -> str:
+    return f'products:{product_id}'
+
+
+def _from_hash(document: Dict[bytes, bytes]) -> Dict[str, Union[str, int]]:
+    return {
+        'id': document[b'id'].decode('utf-8'),
+        'title': document[b'title'].decode('utf-8'),
+        'passenger_capacity': int(document[b'passenger_capacity']),
+        'maximum_speed': int(document[b'maximum_speed']),
+        'in_stock': int(document[b'in_stock'])
+    }
+
+
 class StorageWrapper:
     """
     Product storage
@@ -29,43 +44,31 @@ class StorageWrapper:
     def __init__(self, client):
         self.client = client
 
-    def _format_key(self, product_id: str) -> str:
-        return f'products:{product_id}'
-
-    def _from_hash(self, document: Dict[bytes, bytes]) -> Dict[str, Union[str, int]]:
-        return {
-            'id': document[b'id'].decode('utf-8'),
-            'title': document[b'title'].decode('utf-8'),
-            'passenger_capacity': int(document[b'passenger_capacity']),
-            'maximum_speed': int(document[b'maximum_speed']),
-            'in_stock': int(document[b'in_stock'])
-        }
-
-    def get(self, product_id):
-        product = self.client.hgetall(self._format_key(product_id))
+    def get_product(self, product_id):
+        product = self.client.hgetall(_format_key(product_id))
         if not product:
             raise NotFound(f'Product ID {product_id} does not exist')
         else:
-            return self._from_hash(product)
+            return _from_hash(product)
 
-    def list(self):
-        product_keys = self.client.keys(self._format_key('*'))
+    def list_products(self):
+        product_keys = self.client.keys(_format_key('*'))
         for key in product_keys:
-            yield self._from_hash(self.client.hgetall(key))
+            yield _from_hash(self.client.hgetall(key))
 
-    def create(self, product):
-        product_key = self._format_key(product['id'])
+    def create_product(self, product):
+        product_key = _format_key(product['id'])
         if self.client.exists(product_key):
             raise IllegalArgumentException(f'Product key {product_key} already exist')
         else:
             self.client.hmset(product_key, product)
 
-    def delete(self, product_id):
-        product_key = self._format_key(product_id)
+    def delete_product(self, product_id):
+        product_key = _format_key(product_id)
         self.client.delete(product_key)
 
     def decrement_stock(self, product_id, amount):
-        product_key = self._format_key(product_id)
+        product_key = _format_key(product_id)
         if not self.client.exists(product_key):
             raise NotFound(f'Product ID {product_id} does not exist')
 

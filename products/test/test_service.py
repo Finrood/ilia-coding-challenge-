@@ -19,7 +19,7 @@ def test_get_product(create_product, service_container):
 
     stored_product = create_product()
 
-    with entrypoint_hook(service_container, 'get') as get:
+    with entrypoint_hook(service_container, 'get_product') as get:
         loaded_product = get(stored_product['id'])
 
     assert stored_product == loaded_product
@@ -28,13 +28,13 @@ def test_get_product(create_product, service_container):
 def test_get_product_fails_on_not_found(service_container):
 
     with pytest.raises(NotFound):
-        with entrypoint_hook(service_container, 'get') as get:
+        with entrypoint_hook(service_container, 'get_product') as get:
             get(111)
 
 
 def test_list_products(products, service_container):
 
-    with entrypoint_hook(service_container, 'list') as list_:
+    with entrypoint_hook(service_container, 'list_products') as list_:
         listed_products = list_()
 
     assert products == sorted(listed_products, key=lambda p: p['id'])
@@ -42,7 +42,7 @@ def test_list_products(products, service_container):
 
 def test_list_products_when_empty(service_container):
 
-    with entrypoint_hook(service_container, 'list') as list_:
+    with entrypoint_hook(service_container, 'list_products') as list_:
         listed_products = list_()
 
     assert [] == listed_products
@@ -50,7 +50,7 @@ def test_list_products_when_empty(service_container):
 
 def test_create_product(product, redis_client, service_container):
 
-    with entrypoint_hook(service_container, 'create') as create:
+    with entrypoint_hook(service_container, 'create_product') as create:
         create(product)
 
     stored_product = redis_client.hgetall('products:LZ127')
@@ -86,7 +86,7 @@ def test_create_product_validation_error(
     product.update(product_overrides)
 
     with pytest.raises(ValidationError) as exc_info:
-        with entrypoint_hook(service_container, 'create') as create:
+        with entrypoint_hook(service_container, 'create_product') as create:
             create(product)
 
     assert expected_errors == exc_info.value.args[0]
@@ -101,7 +101,7 @@ def test_create_product_validation_error_on_required_fields(
     product.pop(field)
 
     with pytest.raises(ValidationError) as exc_info:
-        with entrypoint_hook(service_container, 'create') as create:
+        with entrypoint_hook(service_container, 'create_product') as create:
             create(product)
 
     assert (
@@ -118,7 +118,7 @@ def test_create_product_validation_error_on_non_nullable_fields(
     product[field] = None
 
     with pytest.raises(ValidationError) as exc_info:
-        with entrypoint_hook(service_container, 'create') as create:
+        with entrypoint_hook(service_container, 'create_product') as create:
             create(product)
 
     assert (
@@ -131,14 +131,14 @@ def test_delete_existing_product(create_product, service_container, redis_client
 
     assert redis_client.exists(f'products:{stored_product["id"]}')
 
-    with entrypoint_hook(service_container, 'delete') as delete:
+    with entrypoint_hook(service_container, 'delete_product') as delete:
         delete(stored_product['id'])
 
     assert not redis_client.exists(f'products:{stored_product["id"]}')
 
 
 def test_delete_non_existing_product(service_container, redis_client):
-    with entrypoint_hook(service_container, 'delete') as delete:
+    with entrypoint_hook(service_container, 'delete_product') as delete:
         delete('non-existing-product-id')
 
     assert not redis_client.exists('products:non-existing-product-id')

@@ -28,7 +28,7 @@ class GatewayService(object):
     def get_product(self, request, product_id):
         """Gets product by `product_id`
         """
-        product = self.products_rpc.get(product_id)
+        product = self._get_product(product_id)
         return Response(
             ProductSchema().dumps(product).data,
             mimetype='application/json'
@@ -69,7 +69,7 @@ class GatewayService(object):
             raise BadRequest("Invalid json: {}".format(exc))
 
         # Create the product
-        self.products_rpc.create(product_data)
+        self.products_rpc.create_product(product_data)
         return Response(
             json.dumps({'id': product_data['id']}), mimetype='application/json'
         )
@@ -80,7 +80,7 @@ class GatewayService(object):
     def delete_product(self, request, product_id):
         """Deletes product by `product_id`
         """
-        self.products_rpc.delete(product_id)
+        self.products_rpc.delete_product(product_id)
         return Response(
             json.dumps({'id': product_id}), mimetype='application/json'
         )
@@ -172,7 +172,6 @@ class GatewayService(object):
         # Create the order
         # Note - this may raise `ProductNotFound`
         id_ = self._create_order(order_data)
-        print(id_)
         return Response(json.dumps({'id': id_}), mimetype='application/json')
 
     def _create_order(self, order_data):
@@ -187,16 +186,7 @@ class GatewayService(object):
         result = self.orders_rpc.create_order(
             serialized_data['order_details']
         )
-        print(result)
         return result['id']
 
     def _get_product(self, product_id):
-        try:
-            print("HAAAAAAAAAAAAAAAAAAAAA")
-            return self.products_rpc.get(product_id)
-        except Exception as e:
-            print(f"Caught exception of type: {type(e)}")
-            print("HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH")
-            raise ProductNotFound(
-                "Product Id {}".format(product_id)
-            )
+        return self.products_rpc.get_product(product_id)
