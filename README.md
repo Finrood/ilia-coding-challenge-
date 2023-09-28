@@ -5,20 +5,21 @@
 In this section, we'll compare the performances between the original version of the code and my improvements.
 #### Original Code Performance
 
-<img width="595" alt="perf-test-default-code" src="https://github.com/Finrood/ilia-coding-challenge/assets/66259833/8eba1db9-9586-4731-8c49-ea8ba762f0f0">
+![perf-test-changed-code-default-test](https://github.com/Finrood/ilia-coding-challenge-/blob/master/test/perf-test-default-code.png)
+
 
 #### Improved Code Performance (Without Product Deletion and Order List)
 
-![perf-test-changed-code-default-test](https://github.com/Finrood/ilia-coding-challenge/assets/66259833/9476c0c7-f016-4773-9d4a-ebba857ab44b)
+![perf-test-changed-code-default-test](https://github.com/Finrood/ilia-coding-challenge-/blob/master/test/perf-test-changed-code-default-test.png)
 
 
 #### Improved Code Performance (With Product Deletion)
 
-![perf-test-without-list-orders](https://github.com/Finrood/ilia-coding-challenge/assets/66259833/503359a1-7b46-48f5-83c1-34e066a155b2)
+![perf-test-without-list-orders](https://github.com/Finrood/ilia-coding-challenge-/blob/master/test/perf-test-without-list-orders.png)
 
 #### Improved Code Performance (With Product Deletion and Order List)
 
-![perf-test-with-list-orders](https://github.com/Finrood/ilia-coding-challenge/assets/66259833/1e1e3614-7860-4785-8a16-6b797da569fa)
+![perf-test-with-list-orders](https://github.com/Finrood/ilia-coding-challenge-/blob/master/test/perf-test-with-list-orders.png)
 
 
 ## Analysis
