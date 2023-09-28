@@ -1,118 +1,38 @@
-# Nameko Examples
-![Airship Ltd](airship.png)
-## Airship Ltd
-Buying and selling quality airships since 2012
+# ilia-coding-challenge
 
-[![CircleCI](https://circleci.com/gh/nameko/nameko-examples/tree/master.svg?style=svg)](https://circleci.com/gh/nameko/nameko-examples/tree/master)
+## Performance test results
 
-## Prerequisites
+In this section, we'll compare the performances between the original version of the code and my improvements.
+#### Original Code Performance
 
-* [Python 3](https://www.python.org/downloads/)
-* [Docker](https://www.docker.com/)
-* [Docker Compose](https://docs.docker.com/compose/)
+<img width="595" alt="perf-test-default-code" src="https://github.com/Finrood/ilia-coding-challenge/assets/66259833/8eba1db9-9586-4731-8c49-ea8ba762f0f0">
 
-## Overview
+#### Improved Code Performance (Without Product Deletion and Order List)
 
-### Repository structure
-When developing Nameko services you have the freedom to organize your repo structure any way you want.
+![perf-test-changed-code-default-test](https://github.com/Finrood/ilia-coding-challenge/assets/66259833/9476c0c7-f016-4773-9d4a-ebba857ab44b)
 
-For this example we placed 3 Nameko services: `Products`, `Orders` and `Gateway` in one repository.
 
-While possible, this is not necessarily the best practice. Aim to apply Domain Driven Design concepts and try to place only services that belong to the same bounded context in one repository e.g., Product (main service responsible for serving products) and Product Indexer (a service responsible for listening for product change events and indexing product data within search database).
+#### Improved Code Performance (With Product Deletion)
 
-### Services
+![perf-test-without-list-orders](https://github.com/Finrood/ilia-coding-challenge/assets/66259833/503359a1-7b46-48f5-83c1-34e066a155b2)
 
-![Services](diagram.png)
+#### Improved Code Performance (With Product Deletion and Order List)
 
-#### Products Service
+![perf-test-with-list-orders](https://github.com/Finrood/ilia-coding-challenge/assets/66259833/1e1e3614-7860-4785-8a16-6b797da569fa)
 
-Responsible for storing and managing product information and exposing RPC Api that can be consumed by other services. This service is using Redis as it's data store. Example includes implementation of Nameko's [DependencyProvider](https://nameko.readthedocs.io/en/stable/key_concepts.html#dependency-injection) `Storage` which is used for talking to Redis.
 
-#### Orders Service
+## Analysis
+#### Question 1: Why is performance degrading as the test run longer?
+Before my changes, the performance was degrading over time. Upon investigation, I found that when getting an `order`, we were fetching ALL the `products` and filtering them afterward. As the number of products grew, this call took longer.
 
-Responsible for storing and managing orders information and exposing RPC Api that can be consumed by other services.
 
-This service is using PostgreSQL database to persist order information.
-- [nameko-sqlalchemy](https://pypi.python.org/pypi/nameko-sqlalchemy)  dependency is used to expose [SQLAlchemy](http://www.sqlalchemy.org/) session to the service class.
-- [Alembic](https://pypi.python.org/pypi/alembic) is used for database migrations.
+_PS: 
+I first thought the problem might be cause my missing indexes in the database. I then added indexes in `order_details` on `order_id` (here, explicitely declaring the index on the foreign key because even though most database automatically create an index on foreign keys, some do not) and i also added a index on `product_id`. While not used in our cases, I still added it because we might want to do some filtering on that field in the future._
 
-#### Gateway Service
+_After **adding those indexes**, I noticed that **no performance gain were made**, meaning that our database created a index on the foreign key automatically. So after looking a bit more, **I found that when getting an `order`, we would fetch ALL the `products` and filter on them afterward.** Of course, as the number of products grew, the longer this call was taking.__
 
-Is a service exposing HTTP Api to be used by external clients e.g., Web and Mobile Apps. It coordinates all incoming requests and composes responses based on data from underlying domain services.
 
-[Marshmallow](https://pypi.python.org/pypi/marshmallow) is used for validating, serializing and deserializing complex Python objects to JSON and vice versa in all services.
+#### Question 2: How do you fix it?
+**_I fixed it by getting the `product` we wanted directly instead of loading the whole list and filtering afterward_**
 
-## Running examples
-
-Quickest way to try out examples is to run them with Docker Compose
-
-`$ docker-compose up`
-
-Docker images for [RabbitMQ](https://hub.docker.com/_/rabbitmq/), [PostgreSQL](https://hub.docker.com/_/postgres/) and [Redis](https://hub.docker.com/_/redis/) will be automatically downloaded and their containers linked to example service containers.
-
-When you see `Connected to amqp:...` it means services are up and running.
-
-Gateway service with HTTP Api is listening on port 8003 and these endpoitns are available to play with:
-
-#### Create Product
-
-```sh
-$ curl -XPOST -d '{"id": "the_odyssey", "title": "The Odyssey", "passenger_capacity": 101, "maximum_speed": 5, "in_stock": 10}' 'http://localhost:8003/products'
-```
-
-#### Get Product
-
-```sh
-$ curl 'http://localhost:8003/products/the_odyssey'
-
-{
-  "id": "the_odyssey",
-  "title": "The Odyssey",
-  "passenger_capacity": 101,
-  "maximum_speed": 5,
-  "in_stock": 10
-}
-```
-#### Create Order
-
-```sh
-$ curl -XPOST -d '{"order_details": [{"product_id": "the_odyssey", "price": "100000.99", "quantity": 1}]}' 'http://localhost:8003/orders'
-
-{"id": 1}
-```
-
-#### Get Order
-
-```sh
-$ curl 'http://localhost:8003/orders/1'
-
-{
-  "id": 1,
-  "order_details": [
-    {
-      "id": 1,
-      "quantity": 1,
-      "product_id": "the_odyssey",
-      "image": "http://www.example.com/airship/images/the_odyssey.jpg",
-      "price": "100000.99",
-      "product": {
-        "maximum_speed": 5,
-        "id": "the_odyssey",
-        "title": "The Odyssey",
-        "passenger_capacity": 101,
-        "in_stock": 9
-      }
-    }
-  ]
-}
-```
-
-## Running tests
-
-Ensure RabbitMQ, PostgreSQL and Redis are running and `config.yaml` files for each service are configured correctly.
-
-`$ make coverage`
-
-## Debug / Project setup for repo
-
-Please refer to [README-DevEnv.md](README-DevEnv.md)
+Additionally, it's worth noting that we observed performance degradation when the performance test included order listing. This is due to the increasing number of orders in the database over time. Implementing paging would be a good idea if we expect it to grow significantly.
